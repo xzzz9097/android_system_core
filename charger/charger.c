@@ -51,6 +51,8 @@
 #include <linux/android_alarm.h>
 #include <linux/rtc.h>
 
+char *locale;
+
 #ifndef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #endif
