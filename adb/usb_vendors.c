@@ -127,6 +127,8 @@
 #define VENDOR_ID_LAB126        0x1949
 // Yulong Coolpad's USB Vendor ID
 #define VENDOR_ID_YULONG_COOLPAD 0x1EBF
+// Lab126's USB Vendor ID
+#define VENDOR_ID_LAB126        0x1949
 // Kobo's USB Vendor ID
 #define VENDOR_ID_KOBO          0x2237
 // Teleepoch's USB Vendor ID
@@ -143,6 +145,8 @@
 #define VENDOR_ID_BYD           0x19D1
 // OUYA's USB Vendor ID
 #define VENDOR_ID_OUYA          0x2836
+// Metrologic's Vendor ID
+#define VENDOR_ID_METROLOGIC    0x0c2e
 // Haier's USB Vendor ID
 #define VENDOR_ID_HAIER         0x201E
 // Hisense's USB Vendor ID
@@ -206,6 +210,7 @@ int builtInVendorIds[] = {
     VENDOR_ID_SONY,
     VENDOR_ID_LAB126,
     VENDOR_ID_YULONG_COOLPAD,
+    VENDOR_ID_LAB126,
     VENDOR_ID_KOBO,
     VENDOR_ID_TELEEPOCH,
     VENDOR_ID_ANYDATA,
@@ -214,6 +219,7 @@ int builtInVendorIds[] = {
     VENDOR_ID_XIAOMI,
     VENDOR_ID_BYD,
     VENDOR_ID_OUYA,
+    VENDOR_ID_METROLOGIC,
     VENDOR_ID_HAIER,
     VENDOR_ID_HISENSE,
     VENDOR_ID_MTK,

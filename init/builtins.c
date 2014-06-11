@@ -294,7 +294,7 @@ int do_exec(int nargs, char **args)
     }
     else
     {
-        while(wait(&status)!=pid);
+        while(waitpid(pid, &status, 0)!=pid);
     }
 
     return 0;
@@ -475,6 +475,7 @@ int do_mount(int nargs, char **args)
             sprintf(tmp, "/dev/block/loop%d", n);
             loop = open(tmp, mode);
             if (loop < 0) {
+                close(fd);
                 return -1;
             }
 

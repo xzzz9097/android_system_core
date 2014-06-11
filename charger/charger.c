@@ -15,7 +15,7 @@
  */
 
 //#define DEBUG_UEVENTS
-#define CHARGER_KLOG_LEVEL 6
+#define CHARGER_KLOG_LEVEL 0
 
 #include <dirent.h>
 #include <errno.h>
@@ -69,12 +69,12 @@
 #define POWER_ON_KEY_TIME       (2 * MSEC_PER_SEC)
 #define UNPLUGGED_SHUTDOWN_TIME (2 * MSEC_PER_SEC)
 
-#define BATTERY_FULL_THRESH     95
+#define BATTERY_FULL_THRESH     99
 
 #define BACKLIGHT_TOGGLE_PATH "/sys/class/leds/lcd-backlight/brightness"
 
 #define LAST_KMSG_PATH          "/proc/last_kmsg"
-#define LAST_KMSG_MAX_SZ        (32 * 1024)
+#define LAST_KMSG_MAX_SZ        (32768) /* 32 * 1024 */
 
 #if 1
 #define LOGE(x...) do { KLOG_ERROR("charger", x); } while (0)
@@ -168,33 +168,33 @@ struct uevent {
 static struct frame batt_anim_frames[] = {
     {
         .name = "charger/battery_0",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = 0,
     },
     {
         .name = "charger/battery_1",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = 20,
     },
     {
         .name = "charger/battery_2",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = 40,
     },
     {
         .name = "charger/battery_3",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = 60,
     },
     {
         .name = "charger/battery_4",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = 80,
         .level_only = true,
     },
     {
         .name = "charger/battery_5",
-        .disp_time = 750,
+        .disp_time = 350,
         .min_capacity = BATTERY_FULL_THRESH,
     },
 };
@@ -538,8 +538,7 @@ static void process_ps_uevent(struct charger *charger, struct uevent *uevent)
 
     if (!strcmp(uevent->action, "add")) {
         if (!supply) {
-            supply = add_supply(charger, uevent->ps_name, ps_type, uevent->path,
-                                online);
+            supply = add_supply(charger, uevent->ps_name, ps_type, uevent->path, online);
             if (!supply) {
                 LOGE("cannot add supply '%s' (%s %d)\n", uevent->ps_name,
                      uevent->ps_type, online);
@@ -870,24 +869,30 @@ static void update_screen_state(struct charger *charger, int64_t now)
     /* schedule next screen transition */
     charger->next_screen_transition = now + disp_time;
 
-    /* advance frame cntr to the next valid frame
+    /* advance frame cntr to the next valid frame only if we are charging
      * if necessary, advance cycle cntr, and reset frame cntr
      */
-    batt_anim->cur_frame++;
-
-    /* if the frame is used for level-only, that is only show it when it's
-     * the current level, skip it during the animation.
-     */
-    while (batt_anim->cur_frame < batt_anim->num_frames &&
-           batt_anim->frames[batt_anim->cur_frame].level_only)
+    if (charger->num_supplies_online != 0) {
         batt_anim->cur_frame++;
-    if (batt_anim->cur_frame >= batt_anim->num_frames) {
-        batt_anim->cur_cycle++;
-        batt_anim->cur_frame = 0;
+
+        /* if the frame is used for level-only, that is only show it when it's
+         * the current level, skip it during the animation.
+         */
+        while (batt_anim->cur_frame < batt_anim->num_frames &&
+               batt_anim->frames[batt_anim->cur_frame].level_only)
+            batt_anim->cur_frame++;
+        if (batt_anim->cur_frame >= batt_anim->num_frames) {
+            batt_anim->cur_cycle++;
+            batt_anim->cur_frame = 0;
 
         /* don't reset the cycle counter, since we use that as a signal
          * in a test above to check if animation is over
          */
+        }
+    } else {
+        /* Stop animating if we're not charging */
+        batt_anim->cur_frame = 0;
+        batt_anim->cur_cycle++;
     }
 }
 
@@ -1298,7 +1303,7 @@ int main(int argc, char **argv)
 
     ev_init(input_callback, charger);
 
-    fd = uevent_open_socket(64*1024, true);
+    fd = uevent_open_socket(65536, true); /* 64*1024 */
     if (fd >= 0) {
         fcntl(fd, F_SETFL, O_NONBLOCK);
         ev_add_fd(fd, uevent_callback, charger);

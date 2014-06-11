@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <signal.h> // Motorola, a5705c, 2013-05-03, IKJB42MAIN-6672
 
 #define DEFAULT_LOG_ROTATE_SIZE_KBYTES 16
 #define DEFAULT_MAX_ROTATED_LOGS 4
@@ -460,6 +461,22 @@ static void setColoredOutput()
 
 extern "C" void logprint_run_tests(void);
 
+// BEGIN Motorola, a5705c, 2013-05-03, IKJB42MAIN-6672
+static void sigpipe_handler(int n)
+{
+    (void)n;
+    exit(EXIT_FAILURE);
+}
+
+static void install_sigpipe_handler()
+{
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = sigpipe_handler;
+    sigaction(SIGPIPE, &act, NULL);
+}
+// END IKJB42MAIN-6672
+
 int main(int argc, char **argv)
 {
     int err;
@@ -471,6 +488,8 @@ int main(int argc, char **argv)
     log_device_t* devices = NULL;
     log_device_t* dev;
     bool needBinary = false;
+
+    install_sigpipe_handler(); // Motorola, a5705c, 2013-05-03, IKJB42MAIN-6672
 
     g_logformat = android_log_format_new();
 
@@ -669,14 +688,14 @@ int main(int argc, char **argv)
     }
 
     if (!devices) {
-        devices = new log_device_t(strdup("/dev/"LOGGER_LOG_MAIN), false, 'm');
+        devices = new log_device_t(strdup("/dev/" LOGGER_LOG_MAIN), false, 'm');
         android::g_devCount = 1;
         int accessmode =
                   (mode & O_RDONLY) ? R_OK : 0
                 | (mode & O_WRONLY) ? W_OK : 0;
         // only add this if it's available
-        if (0 == access("/dev/"LOGGER_LOG_SYSTEM, accessmode)) {
-            devices->next = new log_device_t(strdup("/dev/"LOGGER_LOG_SYSTEM), false, 's');
+        if (0 == access("/dev/" LOGGER_LOG_SYSTEM, accessmode)) {
+            devices->next = new log_device_t(strdup("/dev/" LOGGER_LOG_SYSTEM), false, 's');
             android::g_devCount++;
         }
     }
